@@ -1,10 +1,8 @@
 <?php
 /*
 Plugin Name: custom book
-Plugin URI: https://akismet.com/
 Description: This is a test book plugin,which is used by the students. 
 Author: Adarsh Kumar Shah
-Author URI: https://automattic.com/wordpress-plugins/
 Text Domain:custom_book-plugin
 Version: 1.0
 */
