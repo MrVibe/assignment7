@@ -15,38 +15,93 @@ define("PLUGIN_URL",plugins_url());
 
 define("PLUGIN_VERSION", '1.0');
 
-function add_my_custum_book_menu(){
-	add_menu_page("custom_book", //page title
-		"custom_book-plugin",    //menu title
-		"manage_options",        // admin lavel
-		"custom_book_plugin",    // page slug
-		"all_new_book",         // call back function
-		"dashicons-book"                      // icon uri
-		);                      //position
-	    add_submenu_page(
-			"custom_book_plugin",// custum slug
-		     "All New",          // page title 
-		     "All New",          // menu title 
-		     "manage_options",   // capablity user level access
-		     "custom_book_plugin",          // menu slug
-		     "all_new_book");    // call back function
-
-	    add_submenu_page(
-			"custom_book_plugin",// custum slug
-		     "Add New",          // page title 
-		     "Add New",          // menu title 
-		     "manage_options",   // capablity user level access
-		     "add_new_book",     // menu slug
-		     "add_new_book");    // call back function
+// register custom post type book
+add_action( 'init', 'create_post_book_type' );
+function create_post_book_type() {  // books custom post type
+    // set up labels
+    $labels = array(
+        'name' => 'Books',
+        'singular_name' => 'Book Item',
+        'add_new' => 'Add New',
+        'add_new_item' => 'Add New Book Item',
+        'edit_item' => 'Edit Book Item',
+        'new_item' => 'New Book Item',
+        'all_items' => 'All Books',
+        'view_item' => 'View Book Item',
+        'search_items' => 'Search Books',
+        'not_found' =>  'No Books Found',
+        'not_found_in_trash' => 'No Books found in Trash',
+        'parent_item_colon' => '',
+        'menu_name' => 'Books',
+    );
+    register_post_type(
+        'books',
+        array(
+            'labels' => $labels,
+            'has_archive' => true,
+            'public' => true,
+            'hierarchical' => true,
+            'supports' => array( 'title', 'editor', 'excerpt', 'custom-fields', 'thumbnail','page-attributes' ),
+            'taxonomies' => array( 'post_tag', 'category' ),
+            'exclude_from_search' => true,
+            'capability_type' => 'post',
+        )
+    );
 }
-add_action("admin_menu","add_my_custum_book_menu");
-function all_new_book(){
-	include_once PLUGIN_DIR_PATH."/view/all_new_book.php";
-
-}
-function add_new_book(){
-	include_once PLUGIN_DIR_PATH."/view/add_new_book.php";
-	insert_data();
+ 
+// register two taxonomies to go with the post type
+add_action( 'init', 'create_taxonomies', 0 );
+function create_taxonomies() {
+    // color-type taxonomy
+    $labels = array(
+        'name'              => _x( 'Book-types', 'taxonomy general name' ),
+        'singular_name'     => _x( 'Book-type', 'taxonomy singular name' ),
+        'search_items'      => __( 'Search Book-types' ),
+        'all_items'         => __( 'All Book-types' ),
+        'parent_item'       => __( 'Parent Book-type' ),
+        'parent_item_colon' => __( 'Parent Book-type:' ),
+        'edit_item'         => __( 'Edit Book-type' ),
+        'update_item'       => __( 'Update Book-type' ),
+        'add_new_item'      => __( 'Add New Book-type' ),
+        'new_item_name'     => __( 'New Book-type' ),
+        'menu_name'         => __( 'Book-types' ),
+    );
+    register_taxonomy(
+        'Book-type',
+        'books',
+        array(
+            'hierarchical' => true,
+            'labels' => $labels,
+            'query_var' => true,
+            'rewrite' => true,
+            'show_admin_column' => true
+        )
+    );
+    // fabric taxonomy
+    $labels = array(
+        'name'              => _x( 'Authors', 'taxonomy general name' ),
+        'singular_name'     => _x( 'Author', 'taxonomy singular name' ),
+        'search_items'      => __( 'Search Author' ),
+        'all_items'         => __( 'All Authors' ),
+        'parent_item'       => __( 'Parent Author' ),
+        'parent_item_colon' => __( 'Parent Author:' ),
+        'edit_item'         => __( 'Edit Author' ),
+        'update_item'       => __( 'Update Author' ),
+        'add_new_item'      => __( 'Add New Author' ),
+        'new_item_name'     => __( 'New Author' ),
+        'menu_name'         => __( 'Authors' ),
+    );
+    register_taxonomy(
+        'Author',
+        'books',
+        array(
+            'hierarchical' => true,
+            'labels' => $labels,
+            'query_var' => true,
+            'rewrite' => true,
+            'show_admin_column' => true
+        )
+    );
 }
 
 function custum_book_plugin(){
@@ -63,73 +118,205 @@ function custum_book_plugin(){
     true);
     $object_array=array(
       "Name"=>"Online Solutions",
-      "Author"=>"Adarsh"
+      "Author"=>"Adarsh",
+      "ajaxurl"=>admin_url('admin-ajax')
     );
     wp_localize_script("custum_book_plugin_script","online_book_management" ,$object_array);
 }
 add_action("init","custum_book_plugin");
 
 
-function my_book_table(){
-	global $wpdb;
-	return $wpdb->prefix."my_book_list"; // wp_my_book_list
+function diwp_create_shortcode_movies_post_type(){
+ 
+    $args = array(
+                    'post_type'      => 'books',
+                    'posts_per_page' => '9',
+                    'publish_status' => 'published',
+                 );
+ 
+    $query = new WP_Query($args);
+ 
+    if($query->have_posts()) :
+ 
+        while($query->have_posts()) :
+ 
+            $query->the_post() ;
+                     
+        $result .= '<div class="book-item">';
+        $result .= '<div class="book-image">' . get_the_post_thumbnail() . '</div>';
+        $result .= '<div class="book-name">' . get_the_title() . '</div>';
+        $result .= '<div class="book-desc">' . get_the_content() . '</div>'; 
+        $result .= '</div>';
+ 
+        endwhile;
+ 
+        wp_reset_postdata();
+ 
+    endif;    
+ 
+    return $result;            
 }
-//table generater
-function my_book_list_generate_table_script(){
-    global $wpdb;
-    require_once(ABSPATH.'wp-admin/includes/upgrade.php');
-    $sql_query_to_create_table="CREATE TABLE `wp_my_book_list` (
-		 `id` int(11) NOT NULL AUTO_INCREMENT,
-		 `book_name` varchar(255) NOT NULL,
-		 `author` varchar(255) NOT NULL,
-		 `category` varchar(255) NOT NULL,
-		 `about` text NOT NULL,
-		 `book_image` text NOT NULL,
-		 `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-		 PRIMARY KEY (`id`)
-		) ENGINE=InnoDB DEFAULT CHARSET=latin1";
-	dbDelta($sql_query_to_create_table);
-}
-register_activation_hook(__FILE__,"my_book_list_generate_table_script");
-
-// deactivate table
-function my_book_list_drop_table(){
-	global $wpdb;
-    require_once(ABSPATH.'wp-admin/includes/upgrade.php');
-    $wpdb->query('DROP table if Exists wp_my_book_list');
-
-    //step-1: we get the id of the post page
-    //delete the page from table
-
-    $the_post_id=get_option("plugin_page"); // getting the id of the post name (plugin_page)
-    if(!empty($the_post_id)){
-    	wp_delete_post($the_post_id, true);
-    }
-}
-register_deactivation_hook(__FILE__,"my_book_list_drop_table");
-
-// creating a dynamic page on activation of plugin
-
-function create_page(){
-	// creating page
-
-	$page=array();
-	$page['post_title']="Online Book Management";
-	$page['post_content']="Learning platform for students";
-	$page['post_status']="publish";
-	$page['post_title']=" Online Book Management";
-	$page['post_type']="page";
-    
-	//$post_id=wp_insert_post($page); // post_id as return value
-
-	//add_option("plugin_page",$post_id); // with the help of this post_id we can delete the plugin page on deactivation of plugin.
-}
-register_activation_hook(__FILE__,"create_page");
-
-//inserting form data into wordpress database
+ 
+add_shortcode( 'book-list', 'diwp_create_shortcode_movies_post_type');
 
 
+// implementing isotope on book list
+
+add_shortcode('isotope',function($atts,$content=null){
+	
+	wp_enqueue_script('isotope-js','https://unpkg.com/isotope-layout@3/dist/isotope.pkgd.min.js',array(),true);
+	
+	$query = new WP_Query(array(
+		'post_type'=>'books',
+		'posts_per_page'=>9
+	));
+	
+	if($query->have_posts()){
+		$posts = [];
+		$all_categories=[];
+		$all_tags = [];
+		while($query->have_posts()){
+			$query->the_post();
+			global $post;
+			$category = wp_get_object_terms($post->ID,'category');
+			$tag = wp_get_object_terms($post->ID,'post_tag');
+			if(!empty($category)){
+				$post->cats=[];
+				foreach($category as $cat){
+                     $post->cats[]=$cat->slug;
+					if(!in_array($cat->term_id,array_keys($all_categories))){
+						$all_categories[$cat->term_id]=$cat;
+					}
+				}
+			}
+			if(!empty($tag)){
+				$post->tags=[];
+				foreach($tag as $t){
+					$post->tags[] = $t->slug;
+					if(!in_array($t->term_id,array_keys($all_tags))){
+						$all_tags[$t->term_id]=$t;
+					}
+				}
+			}
+			$posts[] = $post;
+		}
+		wp_reset_postdata();
+
+		echo '<div class="isotope_wrapper"><div>';
+		if(!empty($all_categories)){
+			?>
+			<ul class="post_categories">
+			<?php
+			 	foreach($all_categories as $category){
+					?>
+				<li class="grid-selector" data-filter="<?php echo $category->slug; ?>"><?php echo $category->name; ?></li>
+				     <?php
+				}
+			?>
+			</ul>
+			<?php
+		}
+		if(!empty($all_tags)){
+			?>
+			<ul class="post_tags">
+			<?php
+			 	foreach($all_tags as $category){
+					?>
+				<li class="grid-subselector" data-filter="<?php echo $category->slug; ?>"><?php echo $category->name; ?></li>
+				     <?php
+				}
+			?>
+			</ul>
+			<?php
+		}
+		?>
+		</div>
+		<div class="grid">
+		<?php
+		foreach($posts as $post){
+			?>
+			<div class="grid-item <?php echo empty($post->cats)?'':implode(',',$post->cats); ?> <?php echo empty($post->tags)?'':implode(',',$post->tags); ?>">
+				
+				<h2>
+					<a href="<?php echo get_permalink($post->ID); ?>"><?php echo $post->post_title; ?></a>
+				</h2>
+			</div>
+			<?php
+		}
+		?>
+		</div></div>
+		<script>
+			window.addEventListener('load',function(){
+				var iso = new Isotope( document.querySelector('.grid'), {
+				  itemSelector: '.grid-item',
+				  layoutMode: 'fitRows'
+				});
+				document.querySelectorAll('.grid-selector').forEach(function(el){
+
+					el.addEventListener('click',function(){
+						
+						let sfilter = el.getAttribute('data-filter');
+
+						iso.arrange({
+						  filter: function( gridIndex, itemElem ) {
+						    return itemElem.classList.contains(sfilter);
+						  }
+						});
+						
+					});
+				});
 
 
+				document.querySelectorAll('.grid-subselector').forEach(function(el){
 
+					el.addEventListener('click',function(){
+						
+						let sfilter = el.getAttribute('data-filter');
 
+						iso.arrange({
+						  filter: function( gridIndex, itemElem ) {
+						    return itemElem.classList.contains(sfilter);
+						  }
+						});
+						
+					});
+				});
+				
+			});
+		</script>
+		<style>
+			.isotope_wrapper {
+			    display: flex;
+			    flex-direction: column;
+			}
+
+			.isotope_wrapper > div {
+			    display: flex;
+			    flex-direction: row;
+			    flex-wrap: wrap;
+			    margin: 0 -1rem;
+			    justify-content: space-between;
+			}
+
+			.isotope_wrapper > div > ul {
+			    display: flex;
+			    flex-wrap: wrap;
+			    margin: 1rem;
+			}
+
+			.isotope_wrapper > div>div {
+			    padding: 1rem;
+			    border: 1px solid #eee;
+			    margin: 1rem;
+			}
+
+			.isotope_wrapper > div > ul > li {
+			    padding: 0.5rem 1rem;
+			    background: #eee;
+			    margin: 2px;cursor:pointer;
+			    border-radius: 4px;
+			}
+		</style>
+		<?php
+	}
+});
