@@ -324,17 +324,28 @@ add_shortcode('isotope',function($atts,$content=null){
 // creating review form
 
 function review_form(){
-   
-    if(isset($_POST['submit'])){
-    	 global $wpdb;
+
+    require_once (dirname(dirname(dirname(dirname(__FILE__)))).'/wp-config.php');
+    $db_host="localhost";
+	$db_user="root";
+	$db_password="";
+	$db_name="wordpress";
+	$db_port="3306";
+	//creatin connection to database
+	$conn=new mysqli($db_host,$db_user,$db_password,$db_name,$db_port);
+    if(isset($_POST['submit'])){	
     	 echo "adarsh";
-    	 $wpdb->insert("wp_user_review",
-            array("title"=>$_POST['u_title'],
-                   "rating"=>$_POST['u_rating'],
-                "email"=>$_POST['u_email'],
-                "query"=>$_POST['u_query'])
-                );
+            $u_title=$_POST['u_title'];
+            $u_rating=$_POST['u_rating'];
+            $u_email=$_POST['u_email'];
+            $u_query=$_POST['u_query'];
+            $sql="INSERT INTO wp_user_review(title,rating,email,query)VALUES('$ $u_title','$u_rating','$u_email','$u_query')";
+		if($conn->query($sql)==TRUE){
+			echo "sucessful";
+               
+        }
     }
+   
              ?>
 	<div class="container">
 		<form action="" method="post">
@@ -353,6 +364,10 @@ function review_form(){
 		   	 	<input type="radio" name="u_rating" value="1" id="star-1" ><label for="star-1"></label>
    	        </div>
           </div>
+           <div class="form-group">
+		  	 <label for="u_email">Riview Title</label>
+		  	 <input type="email" name="u_email" placeholder="Email">
+		  </div>
 		  <div class="form-group">
 		     <textarea placeholder="Ask Your Query" name="u_query"></textarea>
 		  </div>
@@ -429,8 +444,8 @@ function user_review_table(){
 	}
 }
 register_activation_hook(__FILE__,'user_review_table');
-
 // deactivate table
+
 function user_review_drop_table(){
 	global $wpdb;
     require_once(ABSPATH.'wp-admin/includes/upgrade.php');
