@@ -77,7 +77,6 @@ function create_taxonomies() {
             'show_admin_column' => true
         )
     );
-    // fabric taxonomy
     $labels = array(
         'name'              => _x( 'Authors', 'taxonomy general name' ),
         'singular_name'     => _x( 'Author', 'taxonomy singular name' ),
@@ -130,7 +129,7 @@ function diwp_create_shortcode_movies_post_type(){
  
     $args = array(
                     'post_type'      => 'books',
-                    'posts_per_page' => '9',
+                    'posts_per_page' => '2',
                     'publish_status' => 'published',
                  );
  
@@ -145,10 +144,12 @@ function diwp_create_shortcode_movies_post_type(){
         $result .= '<div class="book-item">';
         $result .= '<div class="book-image">' . get_the_post_thumbnail() . '</div>';
         $result .= '<div class="book-name">' . get_the_title() . '</div>';
-        $result .= '<div class="book-desc">' . get_the_content() . '</div>'; 
+        $result .= '<div class="book-desc">' . get_the_content() . '</div>';
         $result .= '</div>';
- 
+
+      
         endwhile;
+          echo '<button id="load_more">Load More</button>'; 
  
         wp_reset_postdata();
  
@@ -156,7 +157,7 @@ function diwp_create_shortcode_movies_post_type(){
  
     return $result;            
 }
- 
+
 add_shortcode( 'book-list', 'diwp_create_shortcode_movies_post_type');
 
 
@@ -170,7 +171,6 @@ add_shortcode('isotope',function($atts,$content=null){
 		'post_type'=>'books',
 		'posts_per_page'=>9
 	));
-	
 	if($query->have_posts()){
 		$posts = [];
 		$all_categories=[];
@@ -320,3 +320,179 @@ add_shortcode('isotope',function($atts,$content=null){
 		<?php
 	}
 });
+
+// creating review form
+
+function review_form(){
+   
+    if(isset($_POST['submit'])){
+    	 global $wpdb;
+    	 echo "adarsh";
+    	 $wpdb->insert("wp_user_review",
+            array("title"=>$_POST['u_title'],
+                   "rating"=>$_POST['u_rating'],
+                "email"=>$_POST['u_email'],
+                "query"=>$_POST['u_query'])
+                );
+    }
+             ?>
+	<div class="container">
+		<form action="" method="post">
+		  <h2>Write a Riview</h2>
+		  <div class="form-group">
+		  	 <label for="u_title">Riview Title</label>
+		  	 <input type="text" name="u_title" placeholder="Riview Title">
+		  </div>
+		  <div class="form-group">
+		   	 <h3>Rating Review</h3>
+		   	 <div class="rating-wraper">
+		   	    <input type="radio" name="u_rating" value="5" id="star-5" ><label for="star-5"></label>
+		   	 	<input type="radio" name="u_rating" value="4" id="star-4" ><label for="star-4"></label>
+		   	 	<input type="radio" name="u_rating" value="3" id="star-3" ><label for="star-3"></label>
+		   	 	<input type="radio" name="u_rating" value="2" id="star-2" ><label for="star-2"></label>
+		   	 	<input type="radio" name="u_rating" value="1" id="star-1" ><label for="star-1"></label>
+   	        </div>
+          </div>
+		  <div class="form-group">
+		     <textarea placeholder="Ask Your Query" name="u_query"></textarea>
+		  </div>
+		  <button type="submit" name="submit">Submit</button>
+	    </form>
+	</div>
+	<style type="">
+		@import url(https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css);
+        form{
+        	margin-top: 1rem;
+        }
+		.form-group{
+			margin-bottom: 1rem;
+		}
+		.rating-wraper{
+			direction: rtl;
+			margin-top: -30px;
+			margin-bottom: 50px;
+			margin-right:260px;
+		}
+		.rating-wraper input{
+			display: none;
+		}
+		.rating-wraper label{
+			display: inline-block;
+			width: 50px;
+			position: relative;
+			cursor: pointer;
+		}
+		.rating-wraper label:before{
+			content: '\2605';
+			position: absolute;
+			font-size: 40px;
+			display: inline-block;
+			top:0;
+			left: 0;
+		}
+		.rating-wraper label:after{
+			content: '\2605';
+			position: absolute;
+			font-size: 40px;
+			display: inline-block;
+			top:0;
+			left: 0;
+			color: yellow;
+			opacity: 0; 
+		}
+		.rating-wraper label:hover:after,
+		.rating-wraper label:hover~label:after,
+		.rating-wraper input:checked~label:after{
+			opacity: 1;
+		}
+	</style>
+	</style>
+	<?php
+}
+
+add_shortcode('form','review_form');
+//generating table
+function user_review_table(){
+	global $wpdb;
+	require_once(ABSPATH.'wp-admin/includes/upgrade.php');
+	if(count($wpdb->get_var('SHOW TABLES LIKE "wp_user_review"'))==0){
+		$sql_query_to_create_table="CREATE TABLE `wp_user_review` (
+			 `id` int(11) NOT NULL AUTO_INCREMENT,
+			 `title` varchar(150) NOT NULL,
+			 `rating` int(11) NOT NULL,
+			 `email` varchar(150) NOT NULL,
+			 `query` text NOT NULL,
+			 PRIMARY KEY (`id`)
+			) ENGINE=InnoDB DEFAULT CHARSET=latin1
+			";
+		dbDelta($sql_query_to_create_table);
+	}
+}
+register_activation_hook(__FILE__,'user_review_table');
+
+// deactivate table
+function user_review_drop_table(){
+	global $wpdb;
+    require_once(ABSPATH.'wp-admin/includes/upgrade.php');
+    $wpdb->query('DROP table if Exists wp_user_review');
+
+    //step-1: we get the id of the post page
+    //delete the page from table
+
+    $the_post_id=get_option("plugin_page"); // getting the id of the post name (plugin_page)
+    if(!empty($the_post_id)){
+    	wp_delete_post($the_post_id, true);
+    }
+}
+register_deactivation_hook(__FILE__,"user_review_drop_table");
+
+
+
+//load more button
+add_action( 'wp_footer', 'my_action_javascript' ); // Write our JS below here
+
+function my_action_javascript() { ?>
+	<script type="text/javascript" >
+	jQuery(document).ready(function($) {
+		var page_count='<?php echo ceil(wp_count_posts('post')->publish/2); ?>';
+		var ajaxurl='<?php echo admin_url('admin-ajax.php');?>';
+		var page=2;
+        jQuery('#load_more').click(function(){
+		var data = {
+			'action': 'my_action',
+			'whatever': page,
+		};
+		jQuery.post(ajaxurl, data, function(response) {
+			jQuery('.book-item').append(response);
+			if(page_count==page){
+				jQuery('#load_more').hide();
+			}
+			page=page + 1;
+		});
+	});
+   });
+	</script> <?php
+}
+add_action( 'wp_ajax_my_action', 'my_action' );
+add_action( 'wp_ajax_nopriv_my_action', 'my_action' );
+function my_action() {
+	global $wpdb; // this is how you get access to the database
+        $args=array(
+   'post_type'=>'books',
+   'paged'=>$_POST['page'],
+   );
+	$the_query = new WP_Query( $args );
+	 
+	// The Loop
+	if ( $the_query->have_posts() ) {
+	    while ( $the_query->have_posts() ) {
+	        $the_query->the_post();
+	        echo '<li>' . get_the_title() . '</li>';
+	    }
+	} else {
+	    // no posts found
+	}
+	/* Restore original Post Data */
+	wp_reset_postdata();
+	wp_die(); 
+}
